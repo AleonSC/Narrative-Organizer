@@ -21,6 +21,25 @@ Other features:
 
 A branch starts *after* a specific idea. If you read a branch, you get the parent's ideas up to and including the fork point, followed by the branch's own ideas. If you move the card a branch forks from, the branch moves with it.
 
+## Using it on your phone
+
+The same app runs as a website that you can install to your home screen. It works offline and opens full-screen like a normal app.
+
+**Link:** https://aleonsc.github.io/Narrative-Organizer/
+
+- **iPhone (Safari):** open the link, tap **Share → Add to Home Screen**.
+- **Android (Chrome):** open the link, tap **⋮ → Install app** (or *Add to Home screen*).
+
+On touch screens, **press and hold** a card for a moment to pick it up and drag it. A quick swipe scrolls as usual, and a tap opens the idea.
+
+**Your phone keeps its own copy of your ideas**, stored on the phone. It does not sync with the Windows app. To move a project between devices:
+- **Phone → PC:** ⋯ menu → *Download a copy (.narrative)*, send the file to your PC, then open it in the Windows app with File → Open.
+- **PC → phone:** in the Windows app use File → Save As, put the `.narrative` file somewhere your phone can reach (OneDrive, Google Drive, email…), then on the phone use ⋯ → *Import a .narrative file*.
+
+Install it to the home screen instead of just bookmarking it. Browsers can clear storage for websites you haven't visited in a while, but installed apps are kept.
+
+*One-time setup (repo owner):* in the GitHub repo go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. After that, every push redeploys the site automatically.
+
 ## Getting the .exe
 
 ### Option A: download a build from GitHub

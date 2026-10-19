@@ -52,6 +52,8 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 body.is-dragging,
@@ -673,8 +675,15 @@ kbd {
   padding: 12px 14px 6px;
 }
 
-.pool .quick {
+.quick-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
   margin: 4px 12px 8px;
+}
+
+.pool .quick {
+  flex: 1;
   min-height: 56px;
 }
 
@@ -1117,6 +1126,278 @@ kbd {
   z-index: 200;
   font-size: 13px;
   max-width: 80vw;
+}
+
+/* ---------- touch screens (no hover) ---------- */
+
+@media (hover: none) {
+  /* Buttons that normally appear on hover are always shown. */
+  .card-tools,
+  .row-actions,
+  .chunk-block .chunk-ref {
+    opacity: 1;
+  }
+
+  /* Long-press drags cards; don't let the phone select text or pop up its menu instead. */
+  .card,
+  .note,
+  .entry-row {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .btn.tiny {
+    padding: 5px 9px;
+    font-size: 12.5px;
+  }
+}
+
+/* ---------- phone-sized screens ---------- */
+
+@media (max-width: 760px) {
+  /* iOS zooms into any text field smaller than 16px. */
+  .input,
+  .select,
+  .project-title {
+    font-size: 16px;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    padding: 6px 8px;
+  }
+
+  .brand {
+    flex: 1 1 0;
+  }
+
+  .brand-mark {
+    display: none;
+  }
+
+  .top-actions {
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  #btn-new .label,
+  .save-status {
+    display: none;
+  }
+
+  .tabs {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 7px 4px;
+    font-size: 13px;
+  }
+
+  .hint {
+    display: none;
+  }
+
+  /* List */
+  .composer,
+  .list-tools,
+  .entry-list {
+    width: calc(100% - 16px);
+  }
+
+  .composer {
+    margin-top: 8px;
+    padding: 8px;
+  }
+
+  .composer-text {
+    min-height: 80px;
+  }
+
+  .composer-row,
+  .list-tools {
+    flex-wrap: wrap;
+  }
+
+  .composer-tags,
+  .list-tools .search {
+    flex: 1 1 100%;
+  }
+
+  .composer-row .select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .entry-row {
+    flex-wrap: wrap;
+    padding: 9px 10px;
+  }
+
+  .handle {
+    display: none;
+  }
+
+  .row-main {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .entry-row .badge {
+    margin-left: 44px;
+  }
+
+  .row-actions {
+    margin-left: auto;
+  }
+
+  /* Timeline: the Unplaced pool becomes a strip across the top. */
+  .view-timeline {
+    flex-direction: column;
+  }
+
+  .pool {
+    width: auto;
+    flex: 0 0 auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    max-height: 40%;
+  }
+
+  .pool-head {
+    padding: 8px 10px 2px;
+  }
+
+  .quick-row {
+    margin: 4px 10px 6px;
+  }
+
+  .pool .quick {
+    min-height: 42px;
+    height: 42px;
+  }
+
+  .pool-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 10px 10px;
+  }
+
+  .pool-list {
+    flex-direction: row;
+  }
+
+  .pool-list .card {
+    flex: 0 0 150px;
+    height: auto;
+    max-height: 92px;
+  }
+
+  .lane-actions {
+    flex-wrap: nowrap;
+  }
+
+  .lane-actions .btn.small {
+    padding: 3px 6px;
+  }
+
+  .pool-list .empty.small {
+    padding: 6px;
+  }
+
+  .tl-toolbar {
+    padding: 6px 8px;
+  }
+
+  .lane-label {
+    padding: 10px 8px;
+  }
+
+  .lane-name {
+    font-size: 13px;
+  }
+
+  .lane-meta {
+    display: none;
+  }
+
+  /* Read */
+  .read-toolbar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .read-toolbar .select {
+    flex: 1 1 45%;
+    min-width: 0;
+  }
+
+  .read-toolbar > label.muted:first-child,
+  .size-label {
+    display: none;
+  }
+
+  .read-scroll {
+    padding: 0;
+  }
+
+  .page {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 28px 20px 60px;
+  }
+
+  .chunk-block .chunk-ref {
+    display: none;
+  }
+
+  /* Editor fills the screen. */
+  .backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .modal.editor {
+    width: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: 0;
+    padding: 10px;
+  }
+
+  .small-modal {
+    align-self: center;
+    margin: 0 12px;
+  }
+
+  .ed-text {
+    min-height: 0;
+  }
+
+  .ed-row,
+  .ed-foot {
+    flex-wrap: wrap;
+  }
+
+  .autosave-note {
+    display: none;
+  }
+
+  .dropdown {
+    position: fixed;
+    right: 8px;
+    left: 8px;
+    top: 52px;
+    min-width: 0;
+  }
+
+  .toast {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+  }
 }
 
 /* ---------- printing (Read view → paper / PDF) ---------- */

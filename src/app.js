@@ -6,14 +6,22 @@
   // ======================================================================
 
   const COLORS = ['#5b7cfa', '#ef7d57', '#3fb6a8', '#a36bd6', '#e6b422', '#5fb760', '#e7608f', '#7d8fa3'];
-  const CARD_W = 220;
-  const CARD_H = 124;
-  const GAP = 30;
-  const LANE_H = 172;
-  const LABEL_W = 200;
   const LEFT_PAD = 16;
   const TOP_PAD = 36;
-  const COL_W = CARD_W + GAP;
+  // Timeline metrics shrink on phone-sized screens; see applyLayoutMetrics().
+  let CARD_W, CARD_H, GAP, LANE_H, LABEL_W, COL_W, compact;
+  const compactQuery = window.matchMedia('(max-width: 760px)');
+
+  function applyLayoutMetrics() {
+    compact = compactQuery.matches;
+    CARD_W = compact ? 150 : 220;
+    CARD_H = compact ? 104 : 124;
+    GAP = compact ? 18 : 30;
+    LANE_H = compact ? 136 : 172;
+    LABEL_W = compact ? 92 : 200;
+    COL_W = CARD_W + GAP;
+  }
+  applyLayoutMetrics();
 
   const api = window.narrativeAPI || makeBrowserAPI();
 
@@ -539,7 +547,13 @@
       if (ev.button !== 0) return;
       if (ev.target.closest('button, input, select, textarea, a, [contenteditable="true"], [contenteditable="plaintext-only"], .no-drag')) return;
       const rect = el.getBoundingClientRect();
+      const touch = ev.pointerType === 'touch';
+      if (drag && drag.timer) clearTimeout(drag.timer);
       drag = {
+        touch,
+        // Mouse drags start as soon as the pointer moves; touch drags need a long-press so scrolling still works.
+        armed: !touch,
+        timer: null,
         entryId,
         el,
         startX: ev.clientX,
@@ -555,8 +569,43 @@
         target: null,
         onClick,
       };
-      ev.preventDefault();
+      if (touch) {
+        drag.timer = setTimeout(() => {
+          if (!drag || drag.el !== el) return;
+          drag.timer = null;
+          drag.armed = true;
+          beginDragVisual();
+          if (navigator.vibrate) navigator.vibrate(12);
+        }, 380);
+      } else {
+        ev.preventDefault();
+      }
     });
+    // A long-press would otherwise open the phone's context menu.
+    el.addEventListener('contextmenu', (ev) => {
+      if (drag && drag.touch) ev.preventDefault();
+    });
+  }
+
+  function beginDragVisual() {
+    drag.moved = true;
+    const ghost = drag.el.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.width = drag.width + 'px';
+    ghost.style.height = drag.height + 'px';
+    ghost.style.left = '0px';
+    ghost.style.top = '0px';
+    document.body.appendChild(ghost);
+    drag.ghost = ghost;
+    drag.el.classList.add('drag-source');
+    document.body.classList.add('is-dragging');
+    positionGhost();
+    updateDragTarget();
+    autoScrollRaf = requestAnimationFrame(autoScrollTick);
+  }
+
+  function positionGhost() {
+    drag.ghost.style.transform = `translate(${drag.x - drag.grabX}px, ${drag.y - drag.grabY}px) rotate(1.5deg)`;
   }
 
   function findTarget(x, y) {
@@ -606,29 +655,38 @@
     if (!drag) return;
     drag.x = ev.clientX;
     drag.y = ev.clientY;
-    if (!drag.moved) {
-      if (Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY) < 5) return;
-      drag.moved = true;
-      const ghost = drag.el.cloneNode(true);
-      ghost.classList.add('drag-ghost');
-      ghost.style.width = drag.width + 'px';
-      ghost.style.height = drag.height + 'px';
-      ghost.style.left = '0px';
-      ghost.style.top = '0px';
-      document.body.appendChild(ghost);
-      drag.ghost = ghost;
-      drag.el.classList.add('drag-source');
-      document.body.classList.add('is-dragging');
-      autoScrollRaf = requestAnimationFrame(autoScrollTick);
+    const dist = Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY);
+    if (!drag.armed) {
+      // Finger moved before the long-press fired: this is a scroll, not a drag.
+      if (dist > 8) {
+        clearTimeout(drag.timer);
+        drag = null;
+      }
+      return;
     }
-    drag.ghost.style.transform = `translate(${ev.clientX - drag.grabX}px, ${ev.clientY - drag.grabY}px) rotate(1.5deg)`;
+    if (!drag.moved) {
+      if (dist < 5) return;
+      beginDragVisual();
+      return;
+    }
+    positionGhost();
     updateDragTarget();
   });
+
+  // Once a touch drag is under way, stop the page from scrolling under the finger.
+  window.addEventListener(
+    'touchmove',
+    (ev) => {
+      if (drag && drag.touch && drag.armed) ev.preventDefault();
+    },
+    { passive: false }
+  );
 
   function endDrag(ev, cancelled) {
     if (!drag) return;
     const d = drag;
     drag = null;
+    if (d.timer) clearTimeout(d.timer);
     if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf);
     autoScrollRaf = null;
     if (!d.moved) {
@@ -958,14 +1016,17 @@
     if (!unplaced.length) poolList.appendChild(h('div', { class: 'empty small' }, 'All ideas are on the timeline. Drag a card here to take it off.'));
 
     const quick = h('textarea', { class: 'input quick', placeholder: 'Quick idea… (Ctrl+Enter)' });
+    const addQuick = () => {
+      if (!quick.value.trim()) return quick.focus();
+      addEntry({ text: quick.value.trim() });
+      render();
+      const q = document.querySelector('.pool .quick');
+      if (q) q.focus();
+    };
     quick.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        if (!quick.value.trim()) return;
-        addEntry({ text: quick.value.trim() });
-        render();
-        const q = document.querySelector('.pool .quick');
-        if (q) q.focus();
+        addQuick();
       }
     });
 
@@ -973,7 +1034,7 @@
       'aside',
       { class: 'pool' },
       h('div', { class: 'pool-head' }, h('strong', null, 'Unplaced ideas'), h('span', { class: 'muted', text: String(unplaced.length) })),
-      quick,
+      h('div', { class: 'quick-row' }, quick, h('button', { class: 'btn small primary', title: 'Add to the Unplaced pool', onclick: addQuick }, 'Add')),
       h('div', { class: 'pool-scroll', 'data-scroll-key': 'pool', 'data-autoscroll': '' }, poolList)
     );
 
@@ -1006,7 +1067,7 @@
       // Lane row with sticky label
       const label = h(
         'div',
-        { class: 'lane-label', style: { '--lane': branch.color, height: LANE_H + 'px' } },
+        { class: 'lane-label', style: { '--lane': branch.color, height: LANE_H + 'px', width: LABEL_W + 'px' } },
         h(
           'div',
           { class: 'lane-name-row' },
@@ -1028,7 +1089,7 @@
                 setView('read');
               },
             },
-            '❡ Read'
+            compact ? '❡' : '❡ Read'
           ),
           branch.id !== 'main' ? h('button', { class: 'btn small ghost danger', title: 'Delete branch', onclick: () => deleteBranch(branch.id) }, '🗑') : null
         )
@@ -1066,7 +1127,7 @@
         const e = state.entries[id];
         if (!e) return;
         const card = timelineCard(e, branch.color, [
-          h('button', { class: 'btn tiny', title: 'Start a new branch after this idea', onclick: () => createBranch(id, branch.id) }, '⑂ Branch'),
+          h('button', { class: 'btn tiny', title: 'Start a new branch after this idea', onclick: () => createBranch(id, branch.id) }, compact ? '⑂' : '⑂ Branch'),
           h(
             'button',
             {
@@ -1118,7 +1179,7 @@
     const toolbar = h(
       'div',
       { class: 'tl-toolbar' },
-      h('span', { class: 'muted' }, 'Drag cards to arrange them. Hover a card and click ', h('b', null, '⑂ Branch'), ' to fork the story from that point.'),
+      h('span', { class: 'muted hint' }, 'Drag cards to arrange them (long-press on touch screens). Click ', h('b', null, '⑂ Branch'), ' on a card to fork the story from that point.'),
       h('span', { class: 'spacer' }),
       h(
         'button',
@@ -1241,7 +1302,7 @@
       h(
         'div',
         { class: 'tl-toolbar' },
-        h('span', { class: 'muted' }, 'A free-form corkboard: drag notes anywhere to cluster and organize them. Double-click empty space to add an idea.'),
+        h('span', { class: 'muted hint' }, 'A free-form corkboard: drag notes anywhere to cluster and organize them. Double-click empty space to add an idea.'),
         h('span', { class: 'spacer' }),
         h(
           'button',
@@ -1638,7 +1699,7 @@
           h('button', { class: 'btn danger ghost', onclick: () => deleteEntry(id) }, 'Delete idea'),
           h('span', { class: 'spacer' }),
           words,
-          h('span', { class: 'muted', text: 'Changes save automatically' }),
+          h('span', { class: 'muted autosave-note', text: 'Changes save automatically' }),
           h('button', { class: 'btn primary', onclick: () => closeEditor() }, 'Done')
         )
       )
@@ -1873,6 +1934,10 @@
 
   async function init() {
     wire();
+    compactQuery.addEventListener('change', () => {
+      applyLayoutMetrics();
+      render();
+    });
     updateUndoButtons();
     try {
       const res = await api.loadInitial();
@@ -1885,6 +1950,23 @@
     }
     if (!['list', 'timeline', 'board', 'read'].includes(ui.view)) ui.view = 'list';
     render();
+    if (!api.isDesktop) setUpWebApp();
+  }
+
+  // Running as a website / home-screen app rather than the Windows app.
+  function setUpWebApp() {
+    const label = (action, text) => {
+      const b = document.querySelector(`#file-menu [data-action="${action}"]`);
+      if (b) b.textContent = text;
+    };
+    label('new-project', 'Start a new narrative…');
+    label('open', 'Import a .narrative file…');
+    label('save-as', 'Download a copy (.narrative)');
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      navigator.serviceWorker.register('sw.js').catch((err) => console.warn('Offline support unavailable', err));
+    }
+    // Ask the browser not to clear our saved ideas when space runs low.
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   }
 
   // ======================================================================
@@ -1922,7 +2004,7 @@
         return new Promise((resolve) => {
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.narrative,.json';
+          // No accept filter: phones often grey out unfamiliar extensions like .narrative.
           input.onchange = async () => {
             const f = input.files[0];
             if (!f) return resolve(null);
