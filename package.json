@@ -1,0 +1,49 @@
+{
+  "name": "narrative-organizer",
+  "productName": "Narrative Organizer",
+  "version": "1.0.0",
+  "description": "Capture narrative ideas piece by piece, arrange them on a branching timeline, and read them as one flowing story.",
+  "main": "main.js",
+  "author": "Narrative Organizer",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.narrativeorganizer.app",
+    "productName": "Narrative Organizer",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "fileAssociations": [
+      {
+        "ext": "narrative",
+        "name": "Narrative Project",
+        "description": "Narrative Organizer project"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
